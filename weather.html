@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gradient-to-r from-blue-500 to-cyan-400 min-h-screen flex items-center justify-center p-5">
+
+  <div class="bg-blue-100 shadow-2xl rounded-3xl p-6 w-full max-w-md">
+
+    <h1 class="text-3xl font-bold text-center text-black-600 mb-5">
+      WEATHER APP
+    </h1>
+     <div class="flex gap-2 mb-5">
+      <input 
+        type="text" 
+        id="cityInput"
+        placeholder="Enter city name"
+        class="flex-1 border-2 border-blue-400 rounded-xl px-4 py-2 outline-none"
+      />
+
+      <button 
+        onclick="getWeather()"
+        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl"
+      >
+        Search
+      </button>
+    </div>
+    <div class="flex justify-center gap-4 mb-5">
+      <button 
+        onclick="setUnit('C')"
+        class="bg-red-500 text-white px-4 py-2 rounded-lg"
+      >
+        °C
+      </button>
+
+      <button 
+        onclick="setUnit('F')"
+        class="bg-orange-500 text-white px-4 py-2 rounded-lg"
+      >
+        °F
+      </button>
+    </div>
+    <div id="weatherResult" class="text-center hidden">
+
+      <h2 id="cityName" class="text-2xl font-bold mb-2"></h2>
+
+      <img id="weatherIcon" class="mx-auto w-24" />
+
+      <p id="temperature" class="text-4xl font-bold text-blue-600"></p>
+
+      <p id="description" class="text-gray-600 capitalize"></p>
+
+      <div class="grid grid-cols-2 gap-4 mt-5">
+
+        <div class="bg-blue-100 p-3 rounded-xl">
+          <p class="font-semibold">Humidity</p>
+          <p id="humidity"></p>
+        </div>
+
+        <div class="bg-cyan-100 p-3 rounded-xl">
+          <p class="font-semibold">Wind Speed</p>
+          <p id="wind"></p>
+        </div>
+
+      </div>
+    </div>
+    <div id="forecast" class="mt-6 hidden">
+      <h2 class="text-xl font-bold mb-3 text-center">
+        5-Day Forecast
+      </h2>
+
+      <div id="forecastContainer" class="grid grid-cols-2 gap-3"></div>
+    </div>
+
+  </div>
+
+<script>
+  const apiKey = "290e98f324f516b0dc42248dafda8997";
+
+  let currentTempC = 0;
+  let currentUnit = "C";
+
+  function setUnit(unit) {
+
+    currentUnit = unit;
+
+    if(unit === "C"){
+      document.getElementById("temperature").innerText =
+        `${currentTempC.toFixed(1)} °C`;
+    }
+    else{
+      let f = (currentTempC * 9/5) + 32;
+
+      document.getElementById("temperature").innerText =
+        `${f.toFixed(1)} °F`;
+    }
+  }
+
+  async function getWeather(){
+
+    const city = document.getElementById("cityInput").value;
+
+    if(city === ""){
+      alert("Please enter city name");
+      return;
+    }
+
+    try{
+
+      const weatherURL =
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+
+      const response = await fetch(weatherURL);
+
+      const data = await response.json();
+
+      if(data.cod != 200){
+        alert("City not found");
+        return;
+      }
+
+      document.getElementById("weatherResult").classList.remove("hidden");
+
+      currentTempC = data.main.temp;
+
+      document.getElementById("cityName").innerText =
+        data.name;
+
+      document.getElementById("description").innerText =
+        data.weather[0].description;
+
+      document.getElementById("humidity").innerText =
+        data.main.humidity + "%";
+
+      document.getElementById("wind").innerText =
+        data.wind.speed + " km/h";
+
+      document.getElementById("weatherIcon").src =
+        `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+
+      setUnit(currentUnit);
+
+      const forecastURL =
+        `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
+
+      const forecastResponse = await fetch(forecastURL);
+
+      const forecastData = await forecastResponse.json();
+
+      showForecast(forecastData);
+
+    }
+    catch(error){
+      alert("Something went wrong");
+      console.log(error);
+    }
+  }
+
+  function showForecast(data){
+
+    document.getElementById("forecast").classList.remove("hidden");
+
+    const container =
+      document.getElementById("forecastContainer");
+
+    container.innerHTML = "";
+
+    const forecastList = data.list.filter(
+      item => item.dt_txt.includes("12:00:00")
+    );
+
+    forecastList.slice(0,5).forEach(item => {
+
+      const date = new Date(item.dt_txt);
+
+      const day = date.toLocaleDateString("en-US", {
+        weekday: "short"
+      });
+
+      const temp = item.main.temp;
+
+      const icon = item.weather[0].icon;
+
+      container.innerHTML += `
+
+        <div class="bg-gray-100 rounded-xl p-3 text-center shadow">
+
+          <p class="font-bold">${day}</p>
+
+          <img 
+            src="https://openweathermap.org/img/wn/${icon}@2x.png"
+            class="mx-auto w-16"
+          />
+
+          <p class="text-lg font-semibold">
+            ${temp.toFixed(1)} °C
+          </p>
+
+        </div>
+
+      `;
+    });
+  }
+
+</script>
+
+</body>
+</html>
